@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use sentry::{ClientInitGuard, ClientOptions, TransactionContext};
-use tracing::warn;
 
 use crate::config::SentryConfig;
 

@@ -61,3 +61,13 @@ rand_core = { version = "0.6", features = ["std"] }
 rising_env_vars = { path = "crates/rising_env_vars" }
 # 安全
 secrecy = "0.8"
+# 工具
+url = "2.5"
+# 其他
+tower-http = { version = "0.5", features = [
+  "add-extension",
+  "fs",
+  "catch-panic",
+  "timeout",
+  "compression-full",
+] }

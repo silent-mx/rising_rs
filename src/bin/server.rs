@@ -1,9 +1,11 @@
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use tokio::{
     net::TcpListener,
     signal::unix::{signal, SignalKind},
 };
+
+use rising_rs::App;
 
 #[macro_use]
 extern crate tracing;
@@ -17,6 +19,9 @@ fn main() -> anyhow::Result<()> {
     rising_rs::util::tracing::init();
 
     let _span = info_span!("server.run");
+    let config = rising_rs::config::Server::from_environment()?;
+    let app = Arc::new(App::new(config));
+    let axum_router = rising_rs::build_handler(app.clone());
 
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     builder.enable_all();
@@ -70,27 +75,27 @@ async fn shutdown_signal() {
     }
 }
 
-fn log_instance_metrics_thread(app: Arc<App>) {
-    // Only run the thread if the configuration is provided
-    let interval = match app.config.instance_metrics_log_every_seconds {
-        Some(secs) => Duration::from_secs(secs),
-        None => return,
-    };
+// fn log_instance_metrics_thread(app: Arc<App>) {
+//     // Only run the thread if the configuration is provided
+//     let interval = match app.config.instance_metrics_log_every_seconds {
+//         Some(secs) => Duration::from_secs(secs),
+//         None => return,
+//     };
 
-    std::thread::spawn(move || loop {
-        if let Err(err) = log_instance_metrics_inner(&app) {
-            error!(?err, "log_instance_metrics error");
-        }
-        std::thread::sleep(interval);
-    });
-}
+//     std::thread::spawn(move || loop {
+//         if let Err(err) = log_instance_metrics_inner(&app) {
+//             error!(?err, "log_instance_metrics error");
+//         }
+//         std::thread::sleep(interval);
+//     });
+// }
 
-fn log_instance_metrics_inner(app: &App) -> anyhow::Result<()> {
-    let families = app.instance_metrics.gather(app)?;
+// fn log_instance_metrics_inner(app: &App) -> anyhow::Result<()> {
+//     let families = app.instance_metrics.gather(app)?;
 
-    let mut stdout = std::io::stdout();
-    LogEncoder::new().encode(&families, &mut stdout)?;
-    stdout.flush()?;
+//     let mut stdout = std::io::stdout();
+//     LogEncoder::new().encode(&families, &mut stdout)?;
+//     stdout.flush()?;
 
-    Ok(())
-}
+//     Ok(())
+// }
