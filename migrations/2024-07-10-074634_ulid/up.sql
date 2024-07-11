@@ -1,5 +1,4 @@
 -- Your SQL goes here
-
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE OR REPLACE FUNCTION generate_ulid() RETURNS uuid

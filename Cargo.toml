@@ -1,21 +1,10 @@
 [package]
 name = "rising_rs"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2021"
-authors = ["silent-mx <silentmx@outlook.com>"]
-license = "MIT/Apache-2.0"
-repository = "https://github.com/silent-mx/rising_rs"
-default-run = "server"
-
-[workspace]
-members = ["crates/*"]
-
-[profile.release]
-opt-level = 2
 
 [dependencies]
-dotenvy = "0.15"
-axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
+axum = { version = "0.7", features = ["ws", "multipart", "macros"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
 tokio = { version = "1.0", features = [
   "net",
@@ -28,12 +17,17 @@ tokio = { version = "1.0", features = [
 ] }
 time = { version = "0.3", features = ["serde-human-readable", "macros"] }
 uuid = { version = "1.9", features = ["serde", "v7"] }
-# 数据序列化和反序列化
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-# 错误处理
-anyhow = "1.0"
-thiserror = "1.0"
+serde_repr = "0.1"
+dotenvy = "0.15"
+url = "2.5"
+# 密码加密
+argon2 = { version = "0.5" }
+rand_core = { version = "0.6", features = ["std"] }
+secrecy = { version = "0.8" }
+# 数据验证
+validator = { version = "0.18", features = ["derive"] }
 # 数据库
 diesel = { version = "2.2", features = [
   "postgres",
@@ -43,31 +37,9 @@ diesel = { version = "2.2", features = [
 ] }
 diesel_migrations = { version = "2.2", features = ["postgres"] }
 deadpool-diesel = { version = "0.6", features = ["postgres", "tracing"] }
-# 数据验证
-validator = { version = "0.18", features = ["derive"] }
+# 错误处理
+anyhow = "1.0"
+thiserror = "1.0"
 # 日志
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-sentry = { version = "0.34", features = [
-  "tracing",
-  "tower",
-  "tower-axum-matched-path",
-  "tower-http",
-] }
-# 密码加密
-argon2 = { version = "0.5" }
-rand_core = { version = "0.6", features = ["std"] }
-# 自定义crates
-rising_env_vars = { path = "crates/rising_env_vars" }
-# 安全
-secrecy = "0.8"
-# 工具
-url = "2.5"
-# 其他
-tower-http = { version = "0.5", features = [
-  "add-extension",
-  "fs",
-  "catch-panic",
-  "timeout",
-  "compression-full",
-] }

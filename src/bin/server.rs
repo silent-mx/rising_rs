@@ -1,50 +1,36 @@
-use std::{net::SocketAddr, sync::Arc};
-
-use tokio::{
-    net::TcpListener,
-    signal::unix::{signal, SignalKind},
-};
-
-use rising_rs::App;
-
 #[macro_use]
 extern crate tracing;
+
+use std::{net::SocketAddr, sync::Arc};
+use tokio::signal::unix::{signal, SignalKind};
 
 const CORE_THREADS: usize = 4;
 
 fn main() -> anyhow::Result<()> {
-    let _sentry = rising_rs::sentry::init();
+    // 初始化日志
+    tracing_subscriber::fmt::init();
 
-    // 初始化日志记录
-    rising_rs::util::tracing::init();
-
-    let _span = info_span!("server.run");
+    // App 配置
     let config = rising_rs::config::Server::from_environment()?;
-    let app = Arc::new(App::new(config));
-    let axum_router = rising_rs::build_handler(app.clone());
+    let app = Arc::new(rising_rs::App::new(config));
+
+    let axum_router = rising_rs::build_axum_router(app.clone());
 
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     builder.enable_all();
     builder.worker_threads(CORE_THREADS);
-    if let Some(threads) = app.config.max_blocking_threads {
-        builder.max_blocking_threads(threads);
-    }
-
     let rt = builder.build().unwrap();
     let make_service = axum_router.into_make_service_with_connect_info::<SocketAddr>();
 
-    // Block the main thread until the server has shutdown
+    // 阻止主线程，直到服务器关闭
     rt.block_on(async {
-        // Create a `TcpListener` using tokio.
-        let listener = TcpListener::bind((app.config.ip, app.config.port)).await?;
-
+        // 使用tokio创建TCP监听器
+        let listener = tokio::net::TcpListener::bind((app.config.ip, app.config.port)).await?;
         let addr = listener.local_addr()?;
 
-        // Do not change this line! Removing the line or changing its contents in any way will break
-        // the test suite :)
         info!("Listening at http://{addr}");
 
-        // Run the server with graceful shutdown
+        // Run the server with gracefull shutdown
         axum::serve(listener, make_service)
             .with_graceful_shutdown(shutdown_signal())
             .await
@@ -74,28 +60,3 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
 }
-
-// fn log_instance_metrics_thread(app: Arc<App>) {
-//     // Only run the thread if the configuration is provided
-//     let interval = match app.config.instance_metrics_log_every_seconds {
-//         Some(secs) => Duration::from_secs(secs),
-//         None => return,
-//     };
-
-//     std::thread::spawn(move || loop {
-//         if let Err(err) = log_instance_metrics_inner(&app) {
-//             error!(?err, "log_instance_metrics error");
-//         }
-//         std::thread::sleep(interval);
-//     });
-// }
-
-// fn log_instance_metrics_inner(app: &App) -> anyhow::Result<()> {
-//     let families = app.instance_metrics.gather(app)?;
-
-//     let mut stdout = std::io::stdout();
-//     LogEncoder::new().encode(&families, &mut stdout)?;
-//     stdout.flush()?;
-
-//     Ok(())
-// }
