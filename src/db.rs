@@ -13,7 +13,6 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 #[derive(Debug, Clone, Copy)]
 pub struct ConnectionConfig {
     pub statement_timeout: Duration,
-    pub read_only: bool,
 }
 
 impl ConnectionConfig {
@@ -21,9 +20,6 @@ impl ConnectionConfig {
         diesel::sql_query("SET application_name = 'rising_rs'").execute(conn)?;
         let statement_timeout = self.statement_timeout.as_millis();
         diesel::sql_query(format!("SET statement_timeout = {statement_timeout}")).execute(conn)?;
-        if self.read_only {
-            diesel::sql_query("SET default_transaction_read_only = 't'").execute(conn)?;
-        }
 
         // 运行数据库迁移
         info!("Migrating the database");
@@ -82,12 +78,8 @@ impl From<ConnectionConfig> for Hook {
     }
 }
 
-pub fn connection_url(config: &crate::config::DatabasePools, url: &str) -> String {
+pub fn connection_url(config: &crate::config::DatabasePool, url: &str) -> String {
     let mut url = Url::parse(url).expect("Invalid database URL");
-
-    if config.enforce_tls {
-        maybe_append_url_param(&mut url, "sslmode", "require");
-    }
 
     maybe_append_url_param(
         &mut url,

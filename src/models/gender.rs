@@ -11,7 +11,6 @@ use diesel::{
 pub enum Gender {
     Male,
     Female,
-    Unknown,
 }
 
 impl ToSql<crate::schema::sql_types::Gender, Pg> for Gender {
@@ -22,7 +21,6 @@ impl ToSql<crate::schema::sql_types::Gender, Pg> for Gender {
         match *self {
             Gender::Male => out.write_all(b"male")?,
             Gender::Female => out.write_all(b"female")?,
-            _ => out.write_all(b"unknow")?,
         }
         Ok(IsNull::No)
     }
@@ -35,7 +33,7 @@ impl FromSql<crate::schema::sql_types::Gender, Pg> for Gender {
         match bytes.as_bytes() {
             b"male" => Ok(Gender::Male),
             b"female" => Ok(Gender::Female),
-            _ => Ok(Gender::Unknown),
+            _ => Err("Invalid gender value".into()),
         }
     }
 }

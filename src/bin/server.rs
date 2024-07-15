@@ -1,21 +1,29 @@
 #[macro_use]
 extern crate tracing;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 use tokio::signal::unix::{signal, SignalKind};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const CORE_THREADS: usize = 4;
 
 fn main() -> anyhow::Result<()> {
     // 初始化日志
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "rising_rs=trace".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-    // App 配置
+    // 从环境变量初始化app配置
     let config = rising_rs::config::Server::from_environment()?;
-    let app = Arc::new(rising_rs::App::new(config));
 
-    let axum_router = rising_rs::build_axum_router(app.clone());
+    // 构建 Axum Router
+    let axum_router = rising_rs::controllers::build_axum_router(config.clone());
 
+    // 创建 Tokio Runtime并设定线程数
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     builder.enable_all();
     builder.worker_threads(CORE_THREADS);
@@ -25,7 +33,7 @@ fn main() -> anyhow::Result<()> {
     // 阻止主线程，直到服务器关闭
     rt.block_on(async {
         // 使用tokio创建TCP监听器
-        let listener = tokio::net::TcpListener::bind((app.config.ip, app.config.port)).await?;
+        let listener = tokio::net::TcpListener::bind((config.ip, config.port)).await?;
         let addr = listener.local_addr()?;
 
         info!("Listening at http://{addr}");
